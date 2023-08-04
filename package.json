@@ -1,0 +1,23 @@
+{
+  "name": "stack",
+  "version": "0.0.1",
+  "description": "Branchstack-compatible, plugin-based API for branching resources",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "tsx",
+    "dev": "tsx --watch",
+    "watch": "tsc --watch",
+    "build": "tsc"
+  },
+  "keywords": [
+    "branchstack"
+  ],
+  "author": "Alex Pearson <alex@alexpear.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "tsx": "^3.12.7"
+  }
+}
