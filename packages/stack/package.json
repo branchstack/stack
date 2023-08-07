@@ -1,0 +1,35 @@
+{
+  "name": "@branchstack/stack",
+  "version": "0.0.1",
+  "description": "Branchstack-compatible, plugin-based API for branching resources",
+  "author": "Alex Pearson <alex@alexpear.com>",
+  "license": "MIT",
+  "keywords": [
+    "branchstack"
+  ],
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/",
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "serve": "node ./dist/index.js",
+    "migrate": "tsx bin/migrate.ts"
+  },
+  "devDependencies": {
+    "@types/koa": "^2.13.8",
+    "@types/koa__router": "^12.0.0",
+    "@types/koa-logger": "^3.1.2",
+    "tsx": "^3.12.7",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@koa/bodyparser": "^5.0.0",
+    "@koa/router": "^12.0.0",
+    "koa": "^2.14.2",
+    "koa-logger": "^3.2.1",
+    "p-queue": "^7.3.4",
+    "sqlite": "^5.0.1",
+    "sqlite3": "^5.1.6"
+  }
+}
