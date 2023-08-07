@@ -21,7 +21,7 @@ export interface Event {
 export const get = async (id: number) =>
   db.get<Event>(
     `select * from events
-     where id = $1
+     where id = ?
      order by timestamp`,
     id,
   )
@@ -30,17 +30,17 @@ export const get = async (id: number) =>
 export const allForBranch = async (branch: string, resource: string) =>
   db.all<Event[]>(
     `select * from events
-     where branch = $1
-     and resource = $2
+     where branch = ?
+     and resource = ?
      order by timestamp`,
-    branch, resource
+    branch, resource,
   )
 
-// create a new event
+// create a new event and return it
 export const create = async (branch: string, resource: string, status: Status, message?: string) =>
   db.get<Event>(
     `insert into events (branch, resource, status, message)
-     values ($1, $2, $3, $4)
+     values (?, ?, ?, ?)
      returning *`,
-    branch, resource, status, message
+    branch, resource, status, message,
   )

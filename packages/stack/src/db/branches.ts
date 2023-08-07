@@ -1,4 +1,4 @@
-import { db } from '.'
+import { db, events } from '.'
 import type { Status } from './events'
 
 // return value of branch-fetching queries
@@ -24,8 +24,8 @@ export const get = async (name: string, resource: string) =>
          having max(timestamp)
        ) as status
      from branches
-     where name = $1
-     and resource = $2`,
+     where name = ?
+     and resource = ?`,
     name, resource
   )
 
@@ -48,26 +48,19 @@ export const all = async () =>
 // insert a branch, tracking its associated events along the way.
 // avoiding duplicates is the responsiblity of callers.
 export const create = async (name: string, parent: string, resource: string, strategy: string) => {
-  await db.run(
+  const branch = await db.get<Branch>(
     `insert into branches(name, parent, resource, strategy)
-     values($1, $2, $3, $4)
+     values(?, ?, ?, ?)
      returning *`,
-    name, parent, resource, strategy
+    name, parent, resource, strategy,
   )
 
-  await db.run(
-    `insert into events (branch, resource, status)
-     values ($1, $2, 'requested')`,
-    [name, resource]
-  )
+  const event = await events.create(name, resource, 'requested')
 
-  return db.get<Branch>(
-    `select *, 'requested' as status
-     from branches
-     where name = $1
-     and resource = $2`,
-    [name, resource]
-  )
+  return {
+    ...branch!,
+    status: event!.status,
+  }
 }
 
 // update an existing branch with new values and events.
@@ -82,26 +75,20 @@ export const update = async (
   resource: string,
   fields: Partial<UpdateFields>,
 ) => {
-  await db.run(
+  const branch = await db.get<Branch>(
     `update branches
-       set parent = coalesce($3, parent),
-           strategy = coalesce($4, strategy)
-       where name = $1
-       and resource = $2`,
-    [name, resource, fields.parent, fields.strategy]
+     set parent = coalesce(?, parent),
+         strategy = coalesce(?, strategy)
+     where name = ?
+     and resource = ?
+     returning *`,
+    fields.parent, fields.strategy, name, resource,
   )
 
-  await db.run(
-    `insert into events(branch, resource, status)
-     values($1, $2, coalesce($3, 'requested'))`,
-    [name, resource, fields.status]
-  )
+  const event = await events.create(name, resource, fields.status ?? 'requested')
 
-  return db.get<Branch>(
-    `select *, coalesce($3, 'requested') as status
-     from branches
-     where name = $1
-     and resource = $2`,
-    name, resource, fields.status,
-  )
+  return {
+    ...branch!,
+    status: event!.status,
+  }
 }
