@@ -5,11 +5,10 @@ import { events, branches } from './db'
 // TODO: import dynamically based on a plugin configuration file (branchstack.json)
 import postgres from '../../postgres-db-dump-restore/src'
 
-// Ways of creating and deleting branches for a Resource,
-// optionally extensible with Configuration options
+// Ways of creating and deleting branches for a Resource
 interface Strategy {
-  create(target: string, template: string, configuration?: Record<string, any>): Promise<void>
-  delete(target: string, configuration?: Record<string, any>): Promise<void>
+  create(target: string, template: string): Promise<void>
+  delete(target: string): Promise<void>
 }
 
 // Plugin-generated export used to hook into the routing layer
@@ -19,6 +18,7 @@ interface Resource {
 }
 
 // load Plugins and their Strategies
+// TODO: *merge* strategies for the same Resource
 const RESOURCES: Resource[] = [postgres]
 
 // generate a Router for the Resources exposed by all of the Plugins
@@ -34,7 +34,7 @@ router.get('/resources', async context => {
 for (const resource of RESOURCES) {
   router.post(`/${resource.type}/branches`, async context => {
     // validate the request body
-    const { name, parent, strategy, configuration } = context.request.body ?? {}
+    const { name, parent, strategy } = context.request.body ?? {}
     if (!name) {
       context.throw(400, `The 'name' property is missing from the request body`)
     }
@@ -55,7 +55,6 @@ for (const resource of RESOURCES) {
       const fields = {
         parent,
         strategy,
-        configuration,
         status: 'requested' as const,
       }
       branch = await branches.update(name, resource.type, fields)
@@ -65,7 +64,6 @@ for (const resource of RESOURCES) {
         parent,
         resource.type,
         strategy,
-        configuration,
       )
     }
 
@@ -78,7 +76,7 @@ for (const resource of RESOURCES) {
     queue.add(async () => {
       try {
         await events.create(name, resource.type, 'activating')
-        await create(name, parent, configuration)
+        await create(name, parent)
         await events.create(name, resource.type, 'active')
       } catch (error: any) {
         const message = error?.message ?? `Failed to create branch ${name}`
@@ -130,7 +128,7 @@ for (const resource of RESOURCES) {
     // enqueue a task from the requested strategy
     queue.add(async () => {
       try {
-        await _delete(name, branch!.configuration)
+        await _delete(name)
         await events.create(name, resource.type, 'inactive')
       } catch (error: any) {
         const message = error?.message ?? `Failed to create branch ${name}`

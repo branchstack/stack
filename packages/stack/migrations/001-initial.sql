@@ -6,7 +6,6 @@ create table branches (
   resource       text not null,
   strategy       text not null,
   parent         text not null,
-  configuration  json,
   primary key (name, resource),
   foreign key (parent, resource) references branches(name, resource)
 );

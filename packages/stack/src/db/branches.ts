@@ -8,12 +8,11 @@ interface Branch {
   resource: string
   strategy: string
   status: Status
-  configuration: Record<string, any> // TODO: handle JSON throughout more cleanly
 }
 
 // get a single branch by name and resource
-export const get = async (name: string, resource: string) => {
-  const branch = await db.get<Branch>(
+export const get = async (name: string, resource: string) =>
+  db.get<Branch>(
     `select
        branches.*,
        (
@@ -30,15 +29,9 @@ export const get = async (name: string, resource: string) => {
     name, resource
   )
 
-  return {
-    ...branch!,
-    configuration: JSON.parse(branch?.configuration as any),
-  }
-}
-
 // get all previously-created branches
-export const all = async () => {
-  const branches = await db.all<Branch[]>(
+export const all = async () =>
+  db.all<Branch[]>(
     `select
        branches.*,
        (
@@ -52,12 +45,6 @@ export const all = async () => {
      from branches`
   )
 
-  return branches.map(branch => ({
-    ...branch,
-    configuration: JSON.parse(branch?.configuration as any),
-  }))
-}
-
 // insert a branch, tracking its associated events along the way.
 // avoiding duplicates is the responsiblity of callers.
 export const create = async (
@@ -65,20 +52,18 @@ export const create = async (
   parent: string,
   resource: string,
   strategy: string,
-  configuration?: Record<string, any>,
 ) => {
   const branch = await db.get<Branch>(
-    `insert into branches(name, parent, resource, strategy, configuration)
-     values(?, ?, ?, ?, json(?))
+    `insert into branches(name, parent, resource, strategy)
+     values(?, ?, ?, ?)
      returning *`,
-    name, parent, resource, strategy, JSON.stringify(configuration)
+    name, parent, resource, strategy
   )
 
   const event = await events.create(name, resource, 'requested')
 
   return {
     ...branch!,
-    configuration: JSON.parse(branch?.configuration as any),
     status: event!.status,
   }
 }
@@ -89,7 +74,6 @@ export interface UpdateFields {
   parent: string
   strategy: string
   status: Status
-  configuration: Record<string, any>
 }
 export const update = async (
   name: string,
@@ -99,19 +83,17 @@ export const update = async (
   const branch = await db.get<Branch>(
     `update branches
      set parent = coalesce(?, parent),
-         strategy = coalesce(?, strategy),
-         configuration = coalesce(json(?), configuration)
+         strategy = coalesce(?, strategy)
      where name = ?
      and resource = ?
      returning *`,
-    fields.parent, fields.strategy, JSON.stringify(fields.configuration), name, resource,
+    fields.parent, fields.strategy, name, resource,
   )
 
   const event = await events.create(name, resource, fields.status ?? 'requested')
 
   return {
     ...branch!,
-    configuration: JSON.parse(branch?.configuration as any),
     status: event!.status,
   }
 }
