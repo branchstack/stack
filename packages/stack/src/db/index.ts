@@ -9,6 +9,7 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url))
 
 // set up the raw database client
 export const db = await open({
+  // TODO: make this file path configurable
   filename: path.join(__dirname, '../../database.db'),
   driver: sqlite3.cached.Database,
 })
